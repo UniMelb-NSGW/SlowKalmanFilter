@@ -1,5 +1,12 @@
 import configparser
 import numpy as np
+from pathlib import Path
+
+def get_project_root() -> Path:
+    return Path(__file__).resolve().parent.parent
+root = get_project_root()
+
+
 # A script for constructing a config file to be read by the files in `src`
 # This should enforce reproducibility - no free parameters in `src`
 
@@ -25,27 +32,18 @@ config['PSR_PARAMETERS'] = {'process_noise': 'Fixed', # the process noise on the
 
 config['OBS_PARAMETERS'] = {'T': 10,       # how long to integrate for in years
                             'cadence': 7,  # the interval between observations in days
-                            'σm':2*np.pi*1e-5,    # measurement noise standard deviation
-                            'seed':1230,      # this is the noise seed. It is used for realisations of process noise and measurement noise and also if random pulsars or random process noise covariances are requested 
+                            'σm':1e-11,    # measurement noise standard deviation
+                            'seed':1230,   # this is the noise seed. It is used for realisations of process noise and measurement noise and also if random pulsars or random process noise covariances are requested 
                              }
 
 
 
-config['INFERENCE_PARAMETERS'] = {'measurement_model': 'pulsar',        # what do you want the KF measurement model to be? One of pulsar, earth,null
-                       'label': 'sandbox123',               # name of the run 
-                       'outdir': "../data/nested_sampling/", # where to store the run output
-                       'sampler': 'dynesty',                 # sampler to use
-                       'sample': 'rwalk_dynesty',            # sampling method
-                       'bound': 'live',                     # bounding method. Other options include 'single', 'auto'. See https://dynesty.readthedocs.io/en/latest/faq.html
-                       'dlogz': 0.1,                         # termination criteria
-                       'npoints':1000,                       # number of live points
-                       'npool': 1,                           # number of parallel threads
-                       'plot': False,                        # do you want to plot the results?
-                       'resume':False                        # do you want to resume from an earlier run using an existing pickle file?
-                      }
 
 
-with open('configs/sandbox123.ini', 'w') as configfile:
+
+
+
+with open(root / 'configs/sandbox.ini', 'w') as configfile:
   config.write(configfile)
 
 
