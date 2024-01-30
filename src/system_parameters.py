@@ -19,7 +19,7 @@ def get_project_root() -> Path:
 
 
 """
-Class of parameters which define the system
+Class of parameters which completely define the system that is being modelled
 """
 class SystemParameters:
 
@@ -42,7 +42,7 @@ class SystemParameters:
                  σp = 1e-20,                  # only used if process_noise != True. Assign the process noise s.d. = σp for all pulsars if "Fixed". Assign randomly within U(σp/10,σp*10) if random. 
                  γ  = 1e-13                  # Mean reversion. The same for every pulsar ): 
                  ):
-        logging.info("Welcome to the Kalman Filter Nested Sampler for PTA GW systems")
+        logging.info("Welcome to the Slow Kalman Filter")
 
         #If a config file is passed, read from that preferentially.
         #Otherwise use the arguments
@@ -87,10 +87,10 @@ class SystemParameters:
             self.seed    = int(OBS['seed'])
 
 
-            #INFERENCE parameters. Just the measurement model which is used by the KF
-            #All other settings for the sampler are defined in NestedSamplerSettings
-            INF = config['INFERENCE_PARAMETERS']
-            self.measurement_model = INF['measurement_model']
+            #Kalman filter parameters
+            KF = config['KF_PARAMETERS']
+
+            self.measurement_model = KF['measurement_model']
 
 
 
@@ -120,3 +120,16 @@ class SystemParameters:
         logging.info(f"Random seed is {self.seed}")
 
 
+
+
+
+
+
+
+
+
+
+            # #INFERENCE parameters. Just the measurement model which is used by the KF
+            # #All other settings for the sampler are defined in NestedSamplerSettings
+            # INF = config['INFERENCE_PARAMETERS']
+            # self.measurement_model = INF['measurement_model']

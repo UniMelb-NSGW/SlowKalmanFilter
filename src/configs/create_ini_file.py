@@ -37,9 +37,8 @@ config['OBS_PARAMETERS'] = {'T': 10,       # how long to integrate for in years
                              }
 
 
-
-
-
+config['KF_PARAMETERS'] = {'measurement_model': 'pulsar', #which model to use for the KF. This will need updating ToDo
+                             }
 
 
 

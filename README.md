@@ -9,8 +9,20 @@
 
 This repo is a generalized Kalman filter that focuses on correctness, explicitness and good unit tests over computational performance.
 
-It is used as a "source of truth" to check the results of other more performance filters.
+It is used as a "source of truth" to check the results of other more performant filters.
 
 It is purely a filter - no Bayesian inference, nested sampling, etc. However, for compatibility with other projects it does use the `Bilby` package to set input parameters to the filter.
 
+The demonstration is is based around Kalman filtering of a state-space model of pulsar timing array frequency data. However the filter itself (`src/kalman_filter.py`) is general and the package asa whole should be easily extensible to other systems or projects
+
+
+
+
+To get started...
+
+
+There are two ways to get started
+
+
+1. Use `configs/create_ini_file.py` to create a `.ini` file. All settings for synthetic data are contained in this `.ini` file.  
 

@@ -1,29 +1,38 @@
 from numpy import sin,cos 
 import numpy as np 
-from numba import jit,njit,prange
+
 import sys
 
 
+
+
+
 """
-Return the two polarisation tensors e_+, e_x
-Reshapes allow vectorisation and JIT compatability 
-Todo: check performance of explicit JIT loops
+Reparameterise h0 and ι into hplus and hcross amplitudes
 """
-@njit(fastmath=True)
+def _h_amplitudes(h,ι): 
+
+    hp =  h*(1.0 + cos(ι)**2)
+    hx =  -2.0*h*cos(ι)
+
+    return hp, hx
+
+
+
+"""
+Given the principal axes vectors `m` and `n`, return the two polarisation tensors e_+, e_x
+"""
 def _polarisation_tensors(m, n):
 
-    # For e_+,e_x, Tensordot might be a bit faster, but list comprehension has JIT support
-    # Note these are 1D arrays, rather than the usual 2D struture
-    #todo: check these for speed up
-    e_plus              = np.array([m[i]*m[j]-n[i]*n[j] for i in range(3) for j in range(3)]) 
-    e_cross             = np.array([m[i]*n[j]+n[i]*m[j] for i in range(3) for j in range(3)])
+    # For e_+,e_x, Tensordot might be a bit faster, but list comprehension has JIT support and is more explicit
+    e_plus              = np.array([m[i]*m[j]-n[i]*n[j] for i in range(3) for j in range(3)]).reshape(3,3)
+    e_cross             = np.array([m[i]*n[j]+n[i]*m[j] for i in range(3) for j in range(3)]).reshape(3,3)
 
     return e_plus,e_cross
 
 
 
-@njit(fastmath=True)
-def principal_axes(theta,phi,psi):
+def _principal_axes(theta,phi,psi):
     
     m1 = sin(phi)*cos(psi) - sin(psi)*cos(phi)*cos(theta)
     m2 = -(cos(phi)*cos(psi) + sin(psi)*sin(phi)*cos(theta))
@@ -38,76 +47,57 @@ def principal_axes(theta,phi,psi):
     return m,n
 
 
-"""
-Get the hplus and hcross amplitudes
-"""
-@njit(fastmath=True)
-def _h_amplitudes(h,ι): 
-    return h*(1.0 + cos(ι)**2),h*(-2.0*cos(ι)) #hplus,hcross
-
-
-@njit(fastmath=True)
-def _prefactors(delta,alpha,psi,q,q_products,h,iota,omega):
-
-    #Time -independent terms
-    m,n                 = principal_axes(np.pi/2.0 - delta,alpha,psi) # Get the principal axes of the GW
-    gw_direction        = np.cross(m,n)                               # The GW source direction. #todo: probably fast to have this not as a cross product - use cross product in unit test
-    e_plus,e_cross      = _polarisation_tensors(m.T,n.T)              # The polarization tensors. Shape (3,3,K)
-    hp,hx               = _h_amplitudes(h,iota)                       # plus and cross amplitudes. Shape (K,)
-    Hij                 = hp * e_plus + hx * e_cross                  # amplitude tensor. Shape (3,3,K)
-    H                   = np.dot(Hij,q_products)                      
-    dot_product         = 1.0 + q @ gw_direction
-  
-    
-    prefactor = -H/(2*omega*dot_product)
-    return prefactor #,dot_product
 
 
 
 
 
 """
-What is the GW modulation factor, including all pulsar terms?
+The GW measurement equation. 
+Note that it is convenient to just define X here where g(t) = 1 - X.
+This is because we operate on heterodyned states.
 """
-@njit(fastmath=True)
-def gw_psr_terms(delta,alpha,psi,q,q_products,h,iota,omega,t,phi0,χ):
-    prefactor = _prefactors(delta,alpha,psi,q,q_products,h,iota,omega)
+def gw_measurement_effect(Ω,Φ0,ψ,ι,δ,α,h,q,d,t): #7 GW parameters, 2 "pulsar parameters", and the discrete timesteps
 
 
-    omega_t = -omega*t
-    omega_t = omega_t.reshape(len(t),1) #Reshape to (T,1) to allow broadcasting. #todo, setup everything as 2d automatically
-
-
-    earth_term = np.sin(-omega_t + phi0)
-    pulsar_term = np.sin(-omega_t + phi0+χ)
-
-
-    return prefactor*(earth_term - pulsar_term)
-   
-  
-"""
-What is the GW modulation factor, neglecting tje pulsar terms?
-"""
-@njit(fastmath=True)
-def gw_earth_terms(delta,alpha,psi,q,q_products,h,iota,omega,t,phi0,χ):
-    prefactor = _prefactors(delta,alpha,psi,q,q_products,h,iota,omega)
-
-    omega_t = -omega*t
-    omega_t = omega_t.reshape(len(t),1)
-
-    earth_term = np.sin(omega_t + phi0)
-
-    return prefactor*(earth_term)
-
-
-"""
-The null model - i.e. no GW
-"""
-@njit(fastmath=True)
-def null_model(delta,alpha,psi,q,q_products,h,iota,omega,t,phi0,χ):
-    return np.zeros((len(t),len(q))) #if there is no GW, the GW factor = 0.0
+    hp,hx               = _h_amplitudes(h,ι)                # plus and cross GW amplitudes. Scalars
+    m,n                 = _principal_axes(np.pi/2.0 - δ,α,ψ) # The principal axes of the GW. np.pi/2.0 - δ converts declination to an altitude. length-3 vectors
+    e_plus,e_cross      = _polarisation_tensors(m.T,n.T)    # The polarization tensors. 3x3 matrices
+    Hij                 = hp * e_plus + hx * e_cross        # Amplitude tensor. Shape (3,3)
     
 
+    #Verbose, explicit, slow
+    H                   = np.zeros(len(q))
+    for k in range(len(H)):
+        H_k = 0
+        q_k = q[k,:]
+        for i in range(3):
+            for j in range(3):
+                H_k += Hij[i,j]*q_k[i]*q_k[j]
+        H[k] = H_k
+
+                       
+
+    gw_direction        = np.cross(m,n)                     # The GW source direction. 
+    dot_product         = 1.0 + q @ gw_direction            # The dot product of PSR direction and GW direction
+
+
+
+
+    #The GW phases
+    earth_term_phase =  -Ω*t + Φ0
+    pulsar_term_phase = Ω*dot_product*d
+
+
+    #Reshapes to allow them to be summed properly
+    earth_term_phase = earth_term_phase.reshape((len(t),1))    #this is a vector of length N_times
+    pulsar_term_phase = pulsar_term_phase.reshape((1,len(q)))  #this is a vector of length N_psr
+
+    #Put it all together
+    GW_factor = H/(2.0*dot_product) *(cos(earth_term_phase).reshape((len(t),1)) - cos(earth_term_phase +pulsar_term_phase))
+
+
+    return GW_factor
 
 
 
