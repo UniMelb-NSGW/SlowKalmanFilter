@@ -32,10 +32,6 @@ def bilby_priors_dict(PTA,P,set_state_parameters_as_known=False,set_measurement_
 
 
 
-
-
-
-
 """
 Create a delta function prior about the true value
 """
@@ -140,8 +136,6 @@ def _set_prior_on_state_parameters(init_parameters,priors,PTA,set_parameters_as_
 
 
     return init_parameters,priors 
-
-
 
 
 

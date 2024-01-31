@@ -1,91 +1,190 @@
-
-
 import numpy as np
 from numba import njit
-
 import logging 
-from gravitational_waves import gw_psr_terms,gw_earth_terms,null_model
 import sys
-from utils import block_diag_view_jit
+from gravitational_waves import gw_measurement_effect
+from utils import dict_to_array
 
 
-class PhaseModel:
+class LinearModel:
 
     """
-    A linear model of the state evolution x = (phi,f)
+    A linear model of the state evolution x = (f)
+
+    To create a new model, the following are required:
+
     """
     def __init__(self,P,PTA):
 
         """
         Initialize the class. 
+        Define any "global" variables here
         """
-        if P.measurement_model == "null":
-            logging.info("You are using just the null measurement model")
-            self.H_function = null_model 
-        elif P.measurement_model == "earth":
-            logging.info("You are using the Earth terms measurement model")
-            self.H_function = gw_earth_terms
-        elif P.measurement_model == "pulsar":
-            logging.info("You are using the Pulsar terms measurement model")
-            self.H_function = gw_psr_terms
-        else:
-            sys.exit("Measurement model not recognized. Stopping.")
+       
 
-
-        self.γ = PTA.γ[0] #assume gamma is known and it is the same for every pulsar
-        self.dt = PTA.dt
-        self.Npsr = PTA.Npsr
+        self.γ        = PTA.γ[0] #assume gamma is known and it is the same for every pulsar
+        self.dt       = PTA.dt
+        self.N_states = PTA.Npsr
+        self.σm       = PTA.σm 
+        self.q        = PTA.q
 
 
 
-    def kalman_machinery(self):
 
-            γ    = self.γ 
-            dt   = self.dt 
-            Npsr = self.Npsr 
-
-            #F-matrix
-            component_array = np.array([[1,(1-np.exp(-γ*dt))/γ],
-                                        [0,np.exp(-γ*dt)]]) 
-
-            F = block_diag_view_jit(component_array,Npsr) 
-
-            #Q-matrix
-            exp_term = 1 - np.exp(-γ*dt) #precompute exponential terms since it is used often. Note if gamma isnt changing we could move this elsewhere. TODO
-
-            term_11 = (γ*dt - exp_term - 0.5*exp_term**2) / γ**3
-            term_12 = (exp_term**2) / (2*γ**2)
-            term_21 = term_12 
-            term_22 = (1 - np.exp(-2*γ*dt)) / (2*γ)
+        #Some problem specific stuff 
 
 
-            component_array = np.array([[term_11,term_12],
-                                        [term_21,term_22]]) 
-            Q = block_diag_view_jit(component_array,Npsr)  
-
-            return F, Q
-
-    def optimised_kalman_machinery(self):
-
-            γ    = self.γ 
-            dt   = self.dt 
-            Npsr = self.Npsr 
+        # Define a list_of_keys arrays. 
+        # This is useful for parsing the Bibly dictionary into arrays efficiently
+        # There may be a less verbose way of doing this, but works well in practice
+        self.list_of_f_keys        = [f'f0{i}' for i in range(PTA.Npsr)]
+        self.list_of_fdot_keys     = [f'fdot{i}' for i in range(PTA.Npsr)]
+        self.list_of_distance_keys = [f'distance{i}' for i in range(PTA.Npsr)]
+        self.list_of_sigma_p_keys  = [f'sigma_p{i}' for i in range(PTA.Npsr)]
 
 
-            Fx = 1.0
-            Fy = (1-np.exp(-γ*dt))/γ
-            Fz = np.exp(-γ*dt)
 
+
+    """
+    State transition matrix.
+    This one is time-independent, only depends on dt
+    """
+    def F_matrix(self,parameters):
+        return np.diag(np.exp(-self.γ*self.dt))
+
+
+    """
+    Control vector.
+    This one is time-independent, only depends on dt
+    """
+    def state_control_vector(self,parameters):
+        return np.zeros(self.N_states)
+
+
+    """
+    Process noise covariance matrix
+    This one is time-independent, only depends on dt
+    """
+    def Q_matrix(self,parameters):
+        σp = parameters['σp']
+        diagonal = σp**2 * (1. - np.exp(-2.0*self.γ* self.dt)) / (2.0 * self.γ)
+        return np.diag(diagonal)
+
+
+    """
+    Measurement matrix
+    """
+    def H_matrix(self,parameters,t):
+        X = gw_measurement_effect(Ω=parameters['Ω'],
+                                  Φ0=parameters['Φ0'],
+                                  ψ=parameters['ψ'],
+                                  ι=parameters['ι'],
+                                  δ=parameters['δ'],
+                                  α=parameters['α'],
+                                  h=parameters['h'],
+                                  q=self.q,
+                                  d=parameters['d'],
+                                  t=t)
+        return 1.0 - X
+
+
+    """
+    A control vector added to the measurement matrix. Must be independent of the states!
+    """
+    def H_control_vector(self,parameters,t):
+
+        X = gw_measurement_effect(Ω=parameters['Ω'],
+                                  Φ0=parameters['Φ0'],
+                                  ψ=parameters['ψ'],
+                                  ι=parameters['ι'],
+                                  δ=parameters['δ'],
+                                  α=parameters['α'],
+                                  h=parameters['h'],
+                                  q=self.q,
+                                  d=parameters['d'],
+                                  t=t)
+
+
+        ephemeris = parameters['f'] + t*parameters['fdot']
+
+        return -X * ephemeris
+
+
+
+    def R_matrix(self):
+        return self.σm**2 * np.eye(self.N_states)
     
-            #Q-matrix
-            exp_term = 1 - np.exp(-γ*dt) #precompute exponential terms since it is used often. Note if gamma isnt changing we could move this elsewhere. TODO
-
-            Qa = (γ*dt - exp_term - 0.5*exp_term**2) / γ**3
-            Qb = (exp_term**2) / (2*γ**2)
-            Qc = Qb
-            Qd = (1 - np.exp(-2*γ*dt)) / (2*γ)
 
 
-            return Fx,Fy,Fz, Qa,Qb,Qc,Qd
+    """
+    From the Bilby dictionary, create a "nice" dictionary for use by the Kalman filter 
+    
+    The likelihood function accepts as an argument a `parameters` Bilby dictionary.
+
+    This is used in conjunction with nested sampling. 
+    
+    But we need to tell our model / Kalman filter how to read this parameters dictionary 
+    
+    """
+    def create_parameters_dictionary(self, bilby_parameters_dict):
+        
+        
+        #All the GW parameters can just be directly accessed as variables
+        Ω   = bilby_parameters_dict["omega_gw"].item()
+        Φ0  = bilby_parameters_dict["phi0_gw"].item()
+        ψ   = bilby_parameters_dict["psi_gw"].item()
+        ι   = bilby_parameters_dict["iota_gw"].item()
+        δ   = bilby_parameters_dict["delta_gw"].item()
+        α   = bilby_parameters_dict["alpha_gw"].item()
+        h   = bilby_parameters_dict["h"].item()
+
+        #Now read in the pulsar parameters as vectors
+        f       = dict_to_array(bilby_parameters_dict,self.list_of_f_keys)
+        fdot    = dict_to_array(bilby_parameters_dict,self.list_of_fdot_keys)
+        d       = dict_to_array(bilby_parameters_dict,self.list_of_distance_keys)
+        σp      = dict_to_array(bilby_parameters_dict,self.list_of_sigma_p_keys)
+
+
+        #Create a new dictionary
+        output_dictionary = { 'Ω': Ω,
+                              'Φ0':Φ0,
+                              'ψ': ψ,
+                              'ι':ι,
+                              'δ':δ,
+                              'α':α,
+                              'h':h,
+                              'f':f,
+                              'fdot':fdot,
+                              'd':d,
+                              'σp':σp}
+
+        return output_dictionary
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
