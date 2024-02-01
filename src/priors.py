@@ -8,7 +8,6 @@ logging.getLogger().setLevel(logging.INFO)
 
 
 
-
 """
 Main external function for defining priors
 """
@@ -119,21 +118,13 @@ def _set_prior_on_state_parameters(init_parameters,priors,PTA,set_parameters_as_
 
         init_parameters,priors = _add_to_bibly_priors_dict_constant(PTA.f,"f0",init_parameters,priors)     
         init_parameters,priors = _add_to_bibly_priors_dict_constant(PTA.fdot,"fdot",init_parameters,priors)           
-        init_parameters,priors = _add_to_bibly_priors_dict_constant(PTA.χ,"chi",init_parameters,priors) 
+        init_parameters,priors = _add_to_bibly_priors_dict_constant(PTA.σp,"sigma_p",init_parameters,priors) 
+        init_parameters,priors = _add_to_bibly_priors_dict_constant(PTA.d,"distance",init_parameters,priors) 
 
-        init_parameters["sigma_p"] = None
-        priors["sigma_p"] = PTA.σp[0]
     
     else:
-        logging.info('Setting uninformative priors on PSR parameters.')
-      
-        init_parameters,priors = _add_to_bibly_priors_dict_uniform(PTA.f,"f0",init_parameters,priors,tol=1e-10)      #uniform
-        init_parameters,priors = _add_to_bibly_priors_dict_uniform(PTA.fdot,"fdot",init_parameters,priors,tol=0.01) #uniform
-        init_parameters,priors = _add_to_bibly_priors_dict_radians(PTA.χ,"chi",init_parameters,priors) 
-
-        init_parameters["sigma_p"] = None
-        priors["sigma_p"] = bilby.core.prior.LogUniform(PTA.σp[0]/10, PTA.σp[0]*10, 'sigma_p') 
-
+        #todo
+        sys.exit('This has not been done yet')
 
     return init_parameters,priors 
 
@@ -175,27 +166,8 @@ def _set_prior_on_measurement_parameters(init_parameters,priors,P,set_parameters
         logging.info('Setting uninformative priors on GW parameters.')
 
             
-        #Add all the GW quantities
-        init_parameters[f"omega_gw"] = None
-        priors[f"omega_gw"] = bilby.core.prior.LogUniform(1e-8, 1e-6, 'omega_gw')
-
-        init_parameters[f"phi0_gw"] = None
-        priors[f"phi0_gw"] = bilby.core.prior.Uniform(0.0, np.pi/2.0, 'phi0_gw')
-
-        init_parameters[f"psi_gw"] = None
-        priors[f"psi_gw"] = bilby.core.prior.Uniform(0.0, np.pi, 'psi_gw')
-
-        init_parameters[f"iota_gw"] = None
-        priors[f"iota_gw"] = bilby.core.prior.Uniform(0.0, np.pi/2.0, 'iota_gw')
-
-        init_parameters[f"delta_gw"] = None
-        priors[f"delta_gw"] = bilby.core.prior.Uniform(0.0, np.pi/2, 'delta_gw')
-
-        init_parameters[f"alpha_gw"] = None
-        priors[f"alpha_gw"] = bilby.core.prior.Uniform(0.0, np.pi, 'alpha_gw')
-
-        init_parameters[f"h"] = None
-        priors[f"h"] = bilby.core.prior.LogUniform(P.h/100.0, P.h*10.0, 'h')
+        #todo
+        sys.exit('This has not been done yet')
 
 
     return init_parameters,priors 

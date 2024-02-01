@@ -28,14 +28,17 @@ def run_kalman_filter(config_file):
     #Initialise the Kalman filter
     KF = KalmanFilter(model,data.f_measured,PTA=PTA)
 
-    # #Run the KF with the correct parameters.
-    # #We get the correct parameters via Bilby dictionary, looking towards when we will run this with nested sampling
+    print(data.f_measured.shape)
+
+
+    #Run the KF with the correct parameters.
+    #We get the correct parameters via Bilby dictionary, looking towards when we will run this with nested sampling
     init_parameters,optimal_parameters_dict = bilby_priors_dict(PTA,P,set_state_parameters_as_known=True,set_measurement_parameters_as_known=True)
     optimal_parameters                      = optimal_parameters_dict.sample(1)    
-    model_likelihood                        = KF.likelihood(optimal_parameters)
+    model_likelihood                        = KF.run(optimal_parameters)
     
         
-    # logging.info(f"The Kalman filter has completed. The likelihood given optimal parameters = {model_likelihood}")
+    logging.info(f"The Kalman filter has completed. The likelihood given optimal parameters = {model_likelihood}")
 
 
 

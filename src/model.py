@@ -22,7 +22,7 @@ class LinearModel:
         """
        
 
-        self.γ        = PTA.γ[0] #assume gamma is known and it is the same for every pulsar
+        self.γ        = PTA.γ
         self.dt       = PTA.dt
         self.N_states = PTA.Npsr
         self.σm       = PTA.σm 
@@ -57,7 +57,7 @@ class LinearModel:
     Control vector.
     This one is time-independent, only depends on dt
     """
-    def state_control_vector(self,parameters):
+    def B_control_vector(self,parameters):
         return np.zeros(self.N_states)
 
 
@@ -84,8 +84,11 @@ class LinearModel:
                                   h=parameters['h'],
                                   q=self.q,
                                   d=parameters['d'],
-                                  t=t)
-        return 1.0 - X
+                                  t=t).flatten() 
+
+
+
+        return np.diag(1.0 - X)
 
 
     """
@@ -102,7 +105,7 @@ class LinearModel:
                                   h=parameters['h'],
                                   q=self.q,
                                   d=parameters['d'],
-                                  t=t)
+                                  t=t).flatten()
 
 
         ephemeris = parameters['f'] + t*parameters['fdot']

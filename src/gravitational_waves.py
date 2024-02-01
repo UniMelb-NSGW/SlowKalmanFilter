@@ -85,16 +85,19 @@ def gw_measurement_effect(Ω,Φ0,ψ,ι,δ,α,h,q,d,t): #7 GW parameters, 2 "puls
 
 
     #The GW phases
-    earth_term_phase =  -Ω*t + Φ0
-    pulsar_term_phase = Ω*dot_product*d
+    earth_term_phase =  -Ω*t + Φ0       #This has length = len (t). 1D vector
+    pulsar_term_phase = Ω*dot_product*d #This has length = Npsr. 1D vector
 
 
-    #Reshapes to allow them to be summed properly
-    earth_term_phase = earth_term_phase.reshape((len(t),1))    #this is a vector of length N_times
-    pulsar_term_phase = pulsar_term_phase.reshape((1,len(q)))  #this is a vector of length N_psr
+    #Reshapes to allow broadcasting and correct summation 
+    earth_term_phase  = np.expand_dims(earth_term_phase, axis=-1) #Make it 2D
+    pulsar_term_phase = np.expand_dims(pulsar_term_phase, axis=-1).T #Make it 2D and transpose
+
 
     #Put it all together
-    GW_factor = H/(2.0*dot_product) *(cos(earth_term_phase).reshape((len(t),1)) - cos(earth_term_phase +pulsar_term_phase))
+    GW_factor = H/(2.0*dot_product) *(cos(earth_term_phase) - cos(earth_term_phase +pulsar_term_phase))
+
+
 
 
     return GW_factor
