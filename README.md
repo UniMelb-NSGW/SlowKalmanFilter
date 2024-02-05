@@ -1,8 +1,7 @@
 # Slow Kalman Filter
 
 
-<!-- [![codecov](https://codecov.io/gh/tomkimpson/KalmanPhasePTA/graph/badge.svg?token=Y2TSEX32BI)](https://codecov.io/gh/tomkimpson/KalmanPhasePTA) -->
-
+[![codecov](https://codecov.io/gh/tomkimpson/SlowKalmanFilter/graph/badge.svg?token=MXT5Y10BX7)](https://codecov.io/gh/tomkimpson/SlowKalmanFilter)
 
 [![Build Status](https://github.com/tomkimpson/SlowKalmanFilter/actions/workflows/run_test.yml/badge.svg?branch=main)](https://github.com/tomkimpson/SlowKalmanFilter/actions/workflows/run_test.yml?query=branch%3Amain)
 
