@@ -48,10 +48,6 @@ def _principal_axes(theta,phi,psi):
 
 
 
-
-
-
-
 """
 The GW measurement equation. 
 Note that it is convenient to just define X here where g(t) = 1 - X.

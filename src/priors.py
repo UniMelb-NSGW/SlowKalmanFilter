@@ -123,7 +123,7 @@ def _set_prior_on_state_parameters(init_parameters,priors,PTA,set_parameters_as_
 
     
     else:
-        #todo
+        
         sys.exit('This has not been done yet')
 
     return init_parameters,priors 
@@ -163,11 +163,35 @@ def _set_prior_on_measurement_parameters(init_parameters,priors,P,set_parameters
         priors[f"h"] = P.h
 
     else:
-        #logging.info('Setting uninformative priors on GW parameters.')
+
 
             
-        #todo
-        sys.exit('This has not been done yet')
+        #Add all the GW quantities
+        init_parameters["omega_gw"] = None
+        priors["omega_gw"] = bilby.core.prior.LogUniform(1e-8, 1e-6, 'omega_gw')
+
+
+        init_parameters["phi0_gw"] = None
+        priors["phi0_gw"] = bilby.core.prior.Uniform(0.0, 2.0*np.pi, 'phi0_gw')
+
+
+        init_parameters["psi_gw"] = None
+        priors["psi_gw"] = bilby.core.prior.Uniform(0.0, np.pi, 'psi_gw')
+
+        init_parameters["iota_gw"] = None
+        priors["iota_gw"] = bilby.core.prior.Sine(0.0, np.pi, 'iota_gw')
+
+
+        init_parameters["delta_gw"] = None
+        priors["delta_gw"] = bilby.core.prior.Cosine(-np.pi/2, np.pi/2, 'delta_gw')
+
+
+        init_parameters["alpha_gw"] = None
+        priors["alpha_gw"] = bilby.core.prior.Uniform(0.0, np.pi, 'alpha_gw')
+
+
+        init_parameters["h"] = None
+        priors["h"] = bilby.core.prior.LogUniform(P.h/100.0, P.h*10.0, 'h')
 
 
     return init_parameters,priors 
