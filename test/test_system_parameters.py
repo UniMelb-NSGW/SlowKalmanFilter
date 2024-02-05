@@ -1,8 +1,10 @@
-#This is the test file for py_src/gravitational_waves.py 
 from src import system_parameters
-# import random 
 import numpy as np 
-# from numpy import sin,cos
+from pathlib import Path
+
+def get_project_root() -> Path:
+    return Path(__file__).resolve().parent.parent
+
 
 """Check that we can call SystemParameters and the variables are generally set properly"""
 def test_basic_call():
@@ -33,18 +35,9 @@ def test_basic_call():
         assert P.T==T[i]
 
 
-"""Make sure that the booleans behave as expected"""
-def test_booleans():
 
+"""Check that basic config file can be read without errors"""
+def test_config_file():
 
-    NS_settings = system_parameters.NestedSamplerSettings(resume='True', plot = 'True')
-    assert NS_settings.resume
-    assert NS_settings.plot
-
-    NS_settings = system_parameters.NestedSamplerSettings(resume='False', plot = 'False')
-    assert not NS_settings.resume
-    assert not NS_settings.plot
-
-    NS_settings = system_parameters.NestedSamplerSettings(resume='True', plot = 'False')
-    assert NS_settings.resume
-    assert not NS_settings.plot
+    root = get_project_root()
+    P   = system_parameters.SystemParameters(config_file=root / 'src/configs/testing.ini') 

@@ -25,12 +25,11 @@ def test_seeding():
     data3 = synthetic_data.SyntheticData(PTA3,P3)
 
 
-    assert np.all(data1.phi_measured==data2.phi_measured)
-    assert np.all(data1.phi_measured!=data3.phi_measured)
+    assert np.all(data1.f_measured==data2.f_measured)
+    assert np.all(data1.f_measured!=data3.f_measured)
 
 
-
-"""If no GW, the noiseless measured phi and the state_phi should be the same"""
+"""If no GW, the noiseless measured f and the state f should be the same"""
 def test_no_GW():
 
    
@@ -38,10 +37,10 @@ def test_no_GW():
     PTA = pulsars.Pulsars(P)            # All pulsar-related quantities
     data = synthetic_data.SyntheticData(PTA,P) # Given the user parameters and the PTA configuration, create some synthetic data
     
-    assert np.all(data.phi_measured_no_noise == data.state_phi)
+    assert np.all(data.measurement_without_noise == data.state)
 
     #but the measured phi is differnt due to noise
-    assert np.all(data.phi_measured != data.state_phi)
+    assert np.all(data.f_measured != data.state)
 
 
 """If gamma = 0 and sigma=0, f should be unchanged """
@@ -52,7 +51,7 @@ def test_no_f():
 
 
     for i in range(PTA.Npsr):
-        assert data.state_f[i,0] == data.state_f[i,-1] #for the ith pulsar, check the initial state is the same as the final state
+        assert data.state[i,0] == data.state[i,-1] #for the ith pulsar, check the initial state is the same as the final state
 
 
 

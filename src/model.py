@@ -29,8 +29,6 @@ class LinearModel:
         self.q        = PTA.q
 
 
-
-
         #Some problem specific stuff 
 
 
@@ -41,7 +39,6 @@ class LinearModel:
         self.list_of_fdot_keys     = [f'fdot{i}' for i in range(PTA.Npsr)]
         self.list_of_distance_keys = [f'distance{i}' for i in range(PTA.Npsr)]
         self.list_of_sigma_p_keys  = [f'sigma_p{i}' for i in range(PTA.Npsr)]
-
 
 
 

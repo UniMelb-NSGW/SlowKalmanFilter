@@ -9,9 +9,6 @@ from pathlib import Path
 
 
 
-
-
-
 def get_project_root() -> Path:
     return Path(__file__).resolve().parent.parent
 
@@ -49,11 +46,11 @@ class SystemParameters:
         #This lets us pass arguments to SystemParameters when exploring/testing, but also pass a config file for major runs
         #todo: unit tests for config parsing 
 
-
         if config_file is not None:
             #Read in the config file
             config = configparser.ConfigParser()
             config.read(config_file)
+       
 
             #Assign variables to self
             #Could just leave them defined in the config - style choice
