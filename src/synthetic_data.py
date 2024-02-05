@@ -15,12 +15,6 @@ import numpy as np
 
 
 
-
-
-
-
-
-
 """
 Create noisy synthetic data to be consumed by the Kalman filter.
 In this example we integrate the 2D vector Ito equation dx = Ax dt + BdW
@@ -82,11 +76,7 @@ class SyntheticData:
        
         self.measurement_without_noise = (1.0-GW)*self.state - GW*pulsars.ephemeris
         
-        print(self.measurement_without_noise.shape)
-        print(GW.shape)
-
-
-
+ 
         measurement_noise = generator.normal(0, pulsars.σm,self.measurement_without_noise.shape) # Measurement noise. Seeded
         self.f_measured = self.measurement_without_noise + measurement_noise
 

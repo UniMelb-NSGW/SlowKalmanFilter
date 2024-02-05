@@ -1,22 +1,6 @@
 import numpy as np 
 import scipy
 
-# """
-# Kalman likelihood
-# """
-
-# def log_likelihood(y,cov):
-#     N = len(y)
-#     x = y/cov
-#     #The innovation covariance is diagonal
-#     #Therefore we can calculate the determinant of its logarithm as below
-#     #A normal np.linalg.det(cov)fails due to overflow, since we just have
-#     #det ~ 10^{-13} * 10^{-13} * 10^{-13}*...
-#     log_det_cov = np.sum(np.log(cov)) # Uses log rules and diagonality of covariance matrix
-#     ll = -0.5 * (log_det_cov + y@x+ N*np.log(2*np.pi))
-#     return ll
-
-
 
 
 class KalmanFilter:
@@ -72,7 +56,9 @@ class KalmanFilter:
 
 
 
-
+    """
+    Given the innovation and innovation covariance, get the likelihood. Pure function.
+    """
     def _log_likelihood(self,y,cov):
         N = len(y)
         sign, log_det = np.linalg.slogdet(cov)
@@ -167,7 +153,7 @@ class KalmanFilter:
 
 
 
-        return ll
+        return x_results,y_results,ll
 
 
 

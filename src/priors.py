@@ -14,7 +14,7 @@ Main external function for defining priors
 def bilby_priors_dict(PTA,P,set_state_parameters_as_known=False,set_measurement_parameters_as_known=False):
 
 
-    logging.info('Setting the bilby priors dict')
+    #logging.info('Setting the bilby priors dict')
 
 
     init_parameters = {}
@@ -114,7 +114,7 @@ def _set_prior_on_state_parameters(init_parameters,priors,PTA,set_parameters_as_
     #This condition will need to be loosened once MWE is running. TODO.
 
     if set_parameters_as_known:
-        logging.info('Setting fully informative priors on PSR parameters')
+        #logging.info('Setting fully informative priors on PSR parameters')
 
         init_parameters,priors = _add_to_bibly_priors_dict_constant(PTA.f,"f0",init_parameters,priors)     
         init_parameters,priors = _add_to_bibly_priors_dict_constant(PTA.fdot,"fdot",init_parameters,priors)           
@@ -138,7 +138,7 @@ def _set_prior_on_measurement_parameters(init_parameters,priors,P,set_parameters
 
     if set_parameters_as_known: #don't set a prior, just assume these are known exactly a priori
 
-        logging.info('Setting fully informative priors on GW parameters')
+        #logging.info('Setting fully informative priors on GW parameters')
         
         #Add all the GW quantities
         init_parameters[f"omega_gw"] = None
@@ -163,7 +163,7 @@ def _set_prior_on_measurement_parameters(init_parameters,priors,P,set_parameters
         priors[f"h"] = P.h
 
     else:
-        logging.info('Setting uninformative priors on GW parameters.')
+        #logging.info('Setting uninformative priors on GW parameters.')
 
             
         #todo
