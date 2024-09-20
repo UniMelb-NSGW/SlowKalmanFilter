@@ -2,7 +2,6 @@ import numpy as np
 import scipy
 
 
-
 class KalmanFilter:
     """
     A class to implement the linear Kalman filter.
@@ -26,7 +25,8 @@ class KalmanFilter:
 
         #General Kalman filter bits
         self.model = Model
-        self.observations = Observations
+        self.observations = Observations.measurement
+        self.t = Observations.t
 
 
         self.N_measurement_states  = self.observations.shape[-1] #number of measurement states
@@ -34,24 +34,10 @@ class KalmanFilter:
         self.N_states              = self.model.N_states
 
 
-
-
-        #Bits specific to this example problem. You may want to change this depending on your particular problem
-
-
         self.x0 = np.zeros(self.N_states) #Guess of the initial state
-        self.P0 = 0.0*np.eye(self.N_states) #Guess of the initial state covariance
+        self.P0 = 1e-10*np.eye(self.N_states) #Guess of the initial state covariance
 
 
-
-
-        # PTA related quantities
-        PTA = kwargs['PTA']
-        self.dt = PTA.dt
-        self.q = PTA.q
-        self.t = PTA.t
-        self.q = PTA.q
-    
 
 
 
@@ -69,43 +55,38 @@ class KalmanFilter:
     """
     Predict step. Pure function
     """
-    def _predict(self,x,P,parameters):
+    def _predict(self,x,P):
 
 
         #these are time-indpendetn and so really could go elsewhere. ToDo
-        F = self.model.F_matrix(parameters)
-        B = self.model.B_control_vector(parameters)
-        Q = self.model.Q_matrix(parameters)
+        F = self.F
+        Q = self.Q
 
 
 
-        return F@x + B, F@P@F.T + Q
+        return F@x, F@P@F.T + Q
 
 
     """
     Update step as a pure function
     """
-    def _update(self,x, P, observation, parameters,t):
+    def _update(self,x, P, observation):
 
-        #Define measurement matrix and control vector for this timestep, for these parameters
-        H           = self.model.H_matrix(parameters,t)
-        H_control   = self.model.H_control_vector(parameters,t)
-        R           = self.model.R_matrix()
 
-        
+        H = self.H
+        R = self.R
+
         #Now do the standard Kalman steps
-        y_predicted = H@x + H_control           # The predicted y
+        y_predicted = H@x           # The predicted y
         y           = observation - y_predicted # The innovation/residual w.r.t actual data
-        S           = np.diag(H@P@H.T) + R      # Innovation covariance
+        S           = H@P@H.T + R      # Innovation covariance
         Sinv        = scipy.linalg.inv(S)       # Innovation covariance inverse
         K           = P@H.T@Sinv                # Kalman gain
         xnew        = x + K@y                   # update x
         Pnew        = P - K@H@P                 # update P
         ll          = self._log_likelihood(y,S) # and get the likelihood
-        y_updated   = H@xnew + H_control        # and map xnew to measurement space
+        y_updated   = H@xnew         # and map xnew to measurement space
         return xnew, Pnew,ll,y_updated
-
-
 
 
     
@@ -116,18 +97,19 @@ class KalmanFilter:
         x = self.x0 
         P = self.P0
 
-        
-        #Map from "Bilby parameters dictionary" to "Kalman parameters dictionary" 
-        kalman_parameters_dictionary = self.model.create_parameters_dictionary(parameters)
-
-
         #Initialise the likelihood
         ll = 0.0
-              
+
+        #Define all the Kalman matrices, which are constant in time
+        self.F = self.model.F_matrix(parameters['γ'])
+        self.Q = self.model.Q_matrix(parameters['γ'],parameters['σp'])
+        self.H = self.model.H_matrix()
+        self.R = self.model.R_matrix(parameters['σm'])
+     
        
         #Do the first update step
         i = 0
-        x,P,likelihood_value,y_predicted = self._update(x,P, self.observations[i,:],kalman_parameters_dictionary,self.t[i])
+        x,P,likelihood_value,y_predicted = self._update(x,P, self.observations[i,:])
         ll +=likelihood_value
 
         #Place to store results
@@ -137,9 +119,9 @@ class KalmanFilter:
         
         #y_results[0,:] = y_predicted 
         for i in np.arange(1,self.N_steps):
-            x_predict, P_predict             = self._predict(x,P,kalman_parameters_dictionary)                                           #The predict step
+            x_predict, P_predict             = self._predict(x,P)                                           #The predict step
             
-            x,P,likelihood_value,y_predicted = self._update(x_predict,P_predict, self.observations[i,:],kalman_parameters_dictionary,self.t[i])  
+            x,P,likelihood_value,y_predicted = self._update(x_predict,P_predict, self.observations[i,:])  
             
             ll +=likelihood_value
 

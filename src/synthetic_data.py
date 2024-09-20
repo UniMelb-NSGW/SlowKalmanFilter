@@ -9,6 +9,58 @@ import numpy as np
 
 
 
+
+
+
+class ScalarBrownianMotion:
+
+
+    def __init__(self,P):
+
+        #Create diagonal matrices that can be accepted by vectorized sdeint
+        A = -P.γ
+        B = P.σp
+        
+
+        #State equation
+        #e.g. https://pypi.org/project/sdeint/
+        def f(x,t):
+            return A*x
+        def g(x,t):
+            return B
+
+ 
+        # Initial condition.
+        x0 = 0
+        #Random seeding
+        generator = np.random.default_rng(P.seed)
+
+
+        #Discrete timesteps
+        self.t = P.t
+
+        #Integrate 
+        self.state = sdeint.itoint(f,g,x0, self.t,generator=generator) #This has shape (Ntimes x Npsr)
+        
+        
+        #Create some mean-zero measurement noise
+        measurement_noise = generator.normal(0, P.σm,self.state.shape) # Measurement noise. Seeded
+
+
+        self.measurement =  self.state + measurement_noise
+
+       
+      
+    
+
+
+
+
+
+
+
+
+
 """
 Create noisy synthetic data to be consumed by the Kalman filter.
 In this example we integrate the 2D vector Ito equation dx = Ax dt + BdW
