@@ -23,7 +23,16 @@ The Van der Pol (VDP) oscillator follows the second order ODE
 
 $$\ddot{x} - \mu (1 - x^2) + x = 0 $$
 
-where $\mu$ is a scalar damping parameter
+where $\mu$ is a scalar damping parameter.
+
+We can recast as a pair of first order ODES by letting $y = \dot{x}$ such that
+
+
+$$\dot{x} = y$$
+
+$$\dot{y} = \mu(1-x^2)y - x$$
+
+
 
 
 #### Getting started
