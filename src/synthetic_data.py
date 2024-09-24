@@ -1,14 +1,11 @@
 
 
 import sdeint
-from gravitational_waves import gw_measurement_effect
 import logging
 import numpy as np 
-
-
-
-
-
+import matplotlib.pyplot as plt 
+import scienceplots
+plt.style.use('science')
 
 
 
@@ -17,11 +14,10 @@ class ScalarBrownianMotion:
 
     def __init__(self,P):
 
-        #Create diagonal matrices that can be accepted by vectorized sdeint
+        #Define general matrices to be accepted by sdeint
         A = -P.γ
         B = P.σp
         
-
         #State equation
         #e.g. https://pypi.org/project/sdeint/
         def f(x,t):
@@ -40,91 +36,47 @@ class ScalarBrownianMotion:
         self.t = P.t
 
         #Integrate 
-        self.state = sdeint.itoint(f,g,x0, self.t,generator=generator) #This has shape (Ntimes x Npsr)
-        
+        self.state = sdeint.itoint(f,g,x0, self.t,generator=generator) 
         
         #Create some mean-zero measurement noise
-        measurement_noise = generator.normal(0, P.σm,self.state.shape) # Measurement noise. Seeded
+        measurement_noise = generator.normal(0, P.σm,self.state.shape) # Measurement noise. Seeded.
 
-
+        #...and add it on to the states
         self.measurement =  self.state + measurement_noise
 
        
       
+    """
+    A plotting function used to plot the synthetic data.
+    Can plot either the states, the measurements, or both.
+    """
+    def plot(self,plot_state=True, plot_observations=True,plot_points=False):
+
+
+        #Setup the figure
+        h,w = 12,12
+        rows = 1
+        cols = 1
+        fig, ax = plt.subplots(nrows=rows, ncols=cols, figsize=(h,w),sharex=True)
     
+        marker=None 
+        if plot_points:
+            marker='o'
 
 
-
-
-
-
-
-
-
-"""
-Create noisy synthetic data to be consumed by the Kalman filter.
-In this example we integrate the 2D vector Ito equation dx = Ax dt + BdW
-We assume the state is x = (f).
-For e.g. 2 pulsars it is x=(f_1,f_2) 
-"""
-class SyntheticData:
-    
-    
-
-    def __init__(self,pulsars,P):
-
-
-      
-        #Create diagonal matrices that can be accepted by vectorized sdeint
-        A = np.diag(-pulsars.γ)
-        B = np.diag(pulsars.σp)
-
-        #State equation
-        #e.g. https://pypi.org/project/sdeint/
-        def f(x,t):
-            return A.dot(x)
-        def g(x,t):
-            return B
-
- 
-        # Initial condition. All initial heterodyned frequencies are zero
-        x0 = np.zeros((pulsars.Npsr)) 
-
-
-        #Random seeding
-        generator = np.random.default_rng(P.seed)
-
-
-        #Discrete timesteps
-        self.t = pulsars.t
-
-
-
-        #Integrate 
-        self.state = sdeint.itoint(f,g,x0, self.t,generator=generator) #This has shape (Ntimes x Npsr)
+        if plot_state:
+            ax.plot(self.t,self.state,label='state',c='C0',marker=marker,scalex=1e-8)
         
-        
-        #Now map from the state space to the measurement space via a measurement equation
-        GW = gw_measurement_effect(Ω=P.Ω,
-                                     Φ0=P.Φ0,
-                                     ψ=P.ψ,
-                                     ι=P.ι,
-                                     δ=P.δ,
-                                     α=P.α,
-                                     h=P.h,
-                                     q=pulsars.q,
-                                     d=pulsars.d,
-                                     t=self.t)
- 
-
-        
-
-       
-        self.measurement_without_noise = (1.0-GW)*self.state - GW*pulsars.ephemeris
-        
- 
-        measurement_noise = generator.normal(0, pulsars.σm,self.measurement_without_noise.shape) # Measurement noise. Seeded
-        self.f_measured = self.measurement_without_noise + measurement_noise
+        if plot_observations:
+            ax.plot(self.t,self.measurement,label='measurement',c='C2',marker=marker,scalex=1e-8)
 
 
+        fs=20
+        ax.set_xlabel('t [s]', fontsize=fs)
+
+
+        ax.xaxis.set_tick_params(labelsize=fs-4)
+        ax.yaxis.set_tick_params(labelsize=fs-4)
+
+        ax.legend(prop={'size':fs})
 
