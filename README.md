@@ -8,7 +8,7 @@
 
 This repository is a generalized extended Kalman filter that focuses on correctness, explicitness and good unit tests over computational performance.
 
-It is used as a "source of truth" to check the results of other more performant filters for application to astrophysical data analysis and modeling.
+It is used as a "source of truth" to check the results of other more performant filters for application to astrophysical data analysis and modeling. It is also a useful starting point for.... todo
 
 It is purely a filter - there is no Bayesian inference, nested sampling, etc. However, for compatibility with other projects it does use the `Bilby` package to set input parameters to the filter.
 

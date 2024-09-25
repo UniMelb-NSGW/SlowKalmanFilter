@@ -11,23 +11,50 @@ logging.getLogger().setLevel(logging.INFO)
 """
 Main external function for defining priors
 """
-def bilby_priors_dict(P):
+def bilby_priors_dict(μ,σp,σm):
 
 
     init_parameters = {}
     priors = bilby.core.prior.PriorDict()
 
-    init_parameters[f"γ"] = None
-    priors[f"γ"] = P.γ
+    init_parameters[f""] = None
+    priors[f"μ"] = μ
 
     init_parameters[f"σp"] = None
-    priors[f"σp"] = P.σp
-
+    priors[f"σp"] = σp
 
     init_parameters[f"σm"] = None
-    priors[f"σm"] = P.σm
+    priors[f"σm"] = σm
  
     return init_parameters,priors
+    
+
+
+
+
+
+
+
+# """
+# Main external function for defining priors
+# """
+# def bilby_priors_dict(P):
+
+
+#     init_parameters = {}
+#     priors = bilby.core.prior.PriorDict()
+
+#     init_parameters[f"γ"] = None
+#     priors[f"γ"] = P.γ
+
+#     init_parameters[f"σp"] = None
+#     priors[f"σp"] = P.σp
+
+
+#     init_parameters[f"σm"] = None
+#     priors[f"σm"] = P.σm
+ 
+#     return init_parameters,priors
     
 
 

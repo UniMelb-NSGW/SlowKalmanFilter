@@ -1,22 +1,31 @@
 import numpy as np 
 import scipy
+import sys
 
-
-class KalmanFilter:
+class ExtendedKalmanFilter:
     """
-    A class to implement the linear Kalman filter.
+    A class to implement the extended (non-linear) Kalman filter.
 
     It takes two initialisation arguments:
 
-        `Model`: class which defines all the Kalman machinery: state transition models, covariance matrices etc. 
+        `Model`: class which defines all the Kalman machinery e.g. state transition models, covariance matrices etc. 
 
-        `Observations`: class which holds the noisy observations recorded at the detector
+        `Observations`: 2D array which holds the noisy observations recorded at the detector
 
-    ...and a general **kwargs that can be modified for the specific problem. 
+        `x0`: A 1D array which holds the initial guess of the initial states
+
+        `P0`: The uncertainty in the guess of P0
+
+    ...and a general **kwargs that can be modified for the specific problem. todo
+
+
+    The states are passed mix of functional and OOP, the states are passed as arguments i.e. no self.x
+    just makes it easier to track where they are updated
+    todo
 
     """
 
-    def __init__(self,Model,Observations,**kwargs):
+    def __init__(self,Model,Observations,x0,P0,**kwargs):
 
         """
         Initialize the class. 
@@ -24,25 +33,28 @@ class KalmanFilter:
 
    
         self.model        = Model
-        self.observations = Observations.measurement
-        self.t            = Observations.t
-
-  
-        self.N_measurement_states  = self.observations.shape[-1] #number of measurement states
-        self.N_steps               = self.observations.shape[0]  #number of observations/timesteps
-        self.N_states              = self.model.N_states
+        self.observations = Observations
 
 
-        self.x0 = np.zeros(self.N_states) #Guess of the initial state
-        self.P0 = 1e1*np.eye(self.N_states) #Guess of the initial state covariance
+   
+        assert self.observations.ndim == 2, f'This filter requires that input observations is a 2D array. The observations here have {self.observations.ndim} dimensions '
+      
+     
+        self.n_measurement_states  = self.observations.shape[-1] #number of measurement states
+        self.n_steps               = self.observations.shape[0]  #number of observations/timesteps
+        self.n_states              = self.model.n_states
 
 
+ 
+        self.x0 = x0 #Guess of the initial state 
+        self.P0 = P0 #Guess of the initial state covariance
 
+      
 
 
 
     """
-    Given the innovation and innovation covariance, get the likelihood. Pure function.
+    Given the innovation and innovation covariance, get the likelihood.
     """
     def _log_likelihood(self,y,cov):
         N = len(y)
@@ -54,10 +66,12 @@ class KalmanFilter:
     """
     Predict step.
     """
-    def _predict(self,x,P):
-        F = self.F
-        Q = self.Q
-        return F@x, F@P@F.T + Q
+    def _predict(self,x,P,parameters):
+        f_function = self.model.f(x,parameters['μ'])
+        F_jacobian = self.model.F_jacobian(x,parameters['μ'])
+        Q          = self.model.Q_matrix(x,parameters['μ'],parameters['σp'])
+  
+        return f_function, F_jacobian@P@F_jacobian.T + Q
 
 
     """
@@ -65,20 +79,27 @@ class KalmanFilter:
     """
     def _update(self,x, P, observation):
 
-
-        H = self.H
-        R = self.R
+        h_function = self.model.h(x)
+        H_jacobian = self.model.H_jacobian(x)
 
         #Now do the standard Kalman steps
-        y_predicted = H@x                       # The predicted y
+        y_predicted = self.model.h(x)                       # The predicted y
         y           = observation - y_predicted # The innovation/residual w.r.t actual data
-        S           = H@P@H.T + R               # Innovation covariance
+       
+     
+
+        S           = H_jacobian@P@H_jacobian.T + self.R               # Innovation covariance
         Sinv        = scipy.linalg.inv(S)       # Innovation covariance inverse
-        K           = P@H.T@Sinv                # Kalman gain
+
+    
+
+        K           = P@H_jacobian.T@Sinv                # Kalman gain
         xnew        = x + K@y                   # update x
-        Pnew        = P - K@H@P                 # update P
+        Pnew        = P - K@H_jacobian@P                 # update P
         ll          = self._log_likelihood(y,S) # and get the likelihood
-        y_updated   = H@xnew         # and map xnew to measurement space
+        y_updated   =self.model.h(xnew)# H@xnew         # and map xnew to measurement space
+
+
         return xnew, Pnew,ll,y_updated
 
 
@@ -93,16 +114,20 @@ class KalmanFilter:
         #Initialise the likelihood
         self.ll = 0.0
 
-        #Define all the Kalman matrices, which are constant in time
-        self.F = self.model.F_matrix(parameters['γ'])
-        self.Q = self.model.Q_matrix(parameters['γ'],parameters['σp'])
-        self.H = self.model.H_matrix()
-        self.R = self.model.R_matrix(parameters['σm'])
+        #Define any matrices which are constant in time
+        self.R          = self.model.R_matrix(parameters['σm'])
+
+
+        # #Define all the Kalman matrices, which are constant in time
+        # self.F = self.model.F_matrix(parameters['γ'])
+        # self.Q = self.model.Q_matrix(parameters['γ'],parameters['σp'])
+        # self.H = self.model.H_matrix()
+        # self.R = self.model.R_matrix(parameters['σm'])
      
        
         #Define arrays to store results
-        self.state_predictions       = np.zeros((self.N_steps,self.N_states))
-        self.measurement_predictions = np.zeros((self.N_steps,self.N_measurement_states))
+        self.state_predictions       = np.zeros((self.n_steps,self.n_states))
+        self.measurement_predictions = np.zeros((self.n_steps,self.n_measurement_states))
 
 
 
@@ -118,8 +143,8 @@ class KalmanFilter:
 
  
      
-        for i in np.arange(1,self.N_steps):
-            x_predict, P_predict             = self._predict(x,P)                                        # The predict step
+        for i in np.arange(1,self.n_steps):
+            x_predict, P_predict             = self._predict(x,P,parameters)                                        # The predict step
             x,P,likelihood_value,y_predicted = self._update(x_predict,P_predict, self.observations[i,:]) # The update step
             
             #Update the running sum of the likelihood and save the state and measurement predictions
