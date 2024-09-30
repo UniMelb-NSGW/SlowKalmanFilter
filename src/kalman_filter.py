@@ -67,11 +67,17 @@ class ExtendedKalmanFilter:
     Predict step.
     """
     def _predict(self,x,P,parameters):
-        f_function = self.model.f(x,parameters['μ'])
+        f_function = self.model.f(x,parameters['μ']) 
         F_jacobian = self.model.F_jacobian(x,parameters['μ'])
         Q          = self.model.Q_matrix(x,parameters['μ'],parameters['σp'])
   
-        return f_function, F_jacobian@P@F_jacobian.T + Q
+
+
+        x_predict = x + self.model.dt*f_function #Euler timestep
+        P_predict = F_jacobian@P@F_jacobian.T + Q
+
+      
+        return x_predict, P_predict
 
 
     """
@@ -87,10 +93,12 @@ class ExtendedKalmanFilter:
         y           = observation - y_predicted # The innovation/residual w.r.t actual data
        
      
-
+        print("P = ", P)
+        print('H = ', H_jacobian)
         S           = H_jacobian@P@H_jacobian.T + self.R               # Innovation covariance
+        print("S = ",S)
         Sinv        = scipy.linalg.inv(S)       # Innovation covariance inverse
-
+        print('----------------')
     
 
         K           = P@H_jacobian.T@Sinv                # Kalman gain
@@ -117,12 +125,6 @@ class ExtendedKalmanFilter:
         #Define any matrices which are constant in time
         self.R          = self.model.R_matrix(parameters['σm'])
 
-
-        # #Define all the Kalman matrices, which are constant in time
-        # self.F = self.model.F_matrix(parameters['γ'])
-        # self.Q = self.model.Q_matrix(parameters['γ'],parameters['σp'])
-        # self.H = self.model.H_matrix()
-        # self.R = self.model.R_matrix(parameters['σm'])
      
        
         #Define arrays to store results
