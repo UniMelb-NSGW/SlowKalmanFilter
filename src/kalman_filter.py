@@ -72,7 +72,6 @@ class ExtendedKalmanFilter:
         Q          = self.model.Q_matrix(x,parameters['μ'],parameters['σp'])
   
 
-
         x_predict = x + self.model.dt*f_function #Euler timestep
         P_predict = F_jacobian@P@F_jacobian.T + Q
 
@@ -80,34 +79,60 @@ class ExtendedKalmanFilter:
         return x_predict, P_predict
 
 
+
+
+    #https://stackoverflow.com/questions/16266720/find-out-if-a-matrix-is-positive-definite-with-numpy
+    def is_pos_def(self,x):
+        return np.all(np.linalg.eigvals(x) > 0)
+
+
     """
     Update step
     """
     def _update(self,x, P, observation):
 
-        h_function = self.model.h(x)
+        #Evaluate the Jacobian of the measurement matrix
         H_jacobian = self.model.H_jacobian(x)
 
         #Now do the standard Kalman steps
         y_predicted = self.model.h(x)                       # The predicted y
-        y           = observation - y_predicted # The innovation/residual w.r.t actual data
-       
-     
-        print("P = ", P)
-        print('H = ', H_jacobian)
-        S           = H_jacobian@P@H_jacobian.T + self.R               # Innovation covariance
-        print("S = ",S)
-        Sinv        = scipy.linalg.inv(S)       # Innovation covariance inverse
-        print('----------------')
+        y           = observation - y_predicted             # The innovation/residual w.r.t actual data        
+        S           = H_jacobian@P@H_jacobian.T + self.R    # Innovation covariance
+        Sinv        = scipy.linalg.inv(S)                   # Innovation covariance inverse
     
 
         K           = P@H_jacobian.T@Sinv                # Kalman gain
-        xnew        = x + K@y                   # update x
-        Pnew        = P - K@H_jacobian@P                 # update P
-        ll          = self._log_likelihood(y,S) # and get the likelihood
-        y_updated   =self.model.h(xnew)# H@xnew         # and map xnew to measurement space
+        xnew        = x + K@y                            # update x
+        #Pnew        = P - K@H_jacobian@P                 # update P
+        
+        
+        Pnew         = (np.eye(self.n_states) - K@H_jacobian)@P
+        
+        
+        # P = (I-KH)P(I-KH)' + KRK'
+        # This is more numerically stable
+        # and works for non-optimal K vs the equation
+        # P = (I-KH)P usually seen in the literature.
+
+        I_KH = np.eye(self.n_states) - np.dot(K, H_jacobian)
+        Pnew = np.dot(np.dot(I_KH, P), I_KH.T) + np.dot(np.dot(K, self.R), K.T)
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        ll          = self._log_likelihood(y,S)          # and get the likelihood
+        y_updated   = self.model.h(xnew)                 # and map xnew to measurement space
 
 
+        Pnew = 0.5*(Pnew+Pnew.T)
+        print(Pnew)
+        
+        print('is pos def:', self.is_pos_def(Pnew))
         return xnew, Pnew,ll,y_updated
 
 
@@ -126,7 +151,7 @@ class ExtendedKalmanFilter:
         self.R          = self.model.R_matrix(parameters['σm'])
 
      
-       
+        
         #Define arrays to store results
         self.state_predictions       = np.zeros((self.n_steps,self.n_states))
         self.measurement_predictions = np.zeros((self.n_steps,self.n_measurement_states))
@@ -146,6 +171,7 @@ class ExtendedKalmanFilter:
  
      
         for i in np.arange(1,self.n_steps):
+            print(i)
             x_predict, P_predict             = self._predict(x,P,parameters)                                        # The predict step
             x,P,likelihood_value,y_predicted = self._update(x_predict,P_predict, self.observations[i,:]) # The update step
             

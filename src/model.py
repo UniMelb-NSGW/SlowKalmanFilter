@@ -1,11 +1,6 @@
 import numpy as np
 
 
-
-
-
-
-
 class KalmanVDP():
     """ 
     The Kalman filter equations for the Van der Pol oscillator with process noise.
@@ -42,7 +37,7 @@ class KalmanVDP():
 
 
     """
-    The state evolution function x_{k+1} = f(x_k)
+    The state evolution function \dot{x} = f(x)
     """
     def f(self,x,μ):
         dx = np.zeros_like(x)
