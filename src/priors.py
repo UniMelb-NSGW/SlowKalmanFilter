@@ -11,14 +11,14 @@ logging.getLogger().setLevel(logging.INFO)
 """
 Main external function for defining priors
 """
-def bilby_priors_dict(μ,σp,σm):
+def bilby_priors_dict(g,σp,σm):
 
 
     init_parameters = {}
     priors = bilby.core.prior.PriorDict()
 
     init_parameters[f""] = None
-    priors[f"μ"] = μ
+    priors[f"g"] = g
 
     init_parameters[f"σp"] = None
     priors[f"σp"] = σp
