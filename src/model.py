@@ -1,190 +1,75 @@
 import numpy as np
-from numba import njit
-import logging 
-import sys
-from gravitational_waves import gw_measurement_effect
-from utils import dict_to_array
 
 
-class LinearModel:
+class KalmanPendulum():
+    """ 
+    The Kalman filter equations for the noisy Pendulum oscillator with process noise.
+    Please see xx.ipynb for a detailed explanation
+    """
+
+
+    def __init__(self,dt):
+        self.dt = dt
+        self.n_states = 2 # the system has 2 hidden states (x,y)
+        self.n_y = 1 # the system has one observation state z
 
     """
-    A linear model of the state evolution x = (f)
+    The discrete measurement noise covariance matrix
+    """
+    def R_matrix(self,σm):
+        scalar = σm**2
+        return scalar * np.ones((self.n_y,self.n_y)) #todo fix ny nomenclature
 
-    To create a new model, the following are required:
 
     """
-    def __init__(self,P,PTA):
+    The discrete process noise covariance matrix
+    """
+    def Q_matrix(self,x,σp):
+      
+        Q11 = σp*self.dt**3 / 3
+        Q12 = σp*self.dt**2 / 2
+        Q21 = σp*self.dt**2 / 2
+        Q22 = σp*self.dt
+        Q = np.array([[Q11,Q12],[Q21,Q22]])
 
-        """
-        Initialize the class. 
-        Define any "global" variables here
-        """
+        return Q
+
+
+    """
+    The state evolution function \dot{x} = f(x)
+    """
+    def f(self,x,g):
+        dx = np.zeros_like(x)
+        
+        x1 = x[0] + self.dt*x[1]
+        x2 = x[1] - self.dt*g*np.sin(x[0])
+
+        dy = -g*np.sin(x[0])
+        y = x[1] + self.dt*dy
+        #print("f func:", x2,y)
+        #print("f func:", x[1],self.dt,dy)
        
+        return np.array([x1,x2]) 
 
-        self.γ        = PTA.γ
-        self.dt       = PTA.dt
-        self.N_states = PTA.Npsr
-        self.σm       = PTA.σm 
-        self.q        = PTA.q
-
-
-        #Some problem specific stuff 
-
-
-        # Define a list_of_keys arrays. 
-        # This is useful for parsing the Bibly dictionary into arrays efficiently
-        # There may be a less verbose way of doing this, but works well in practice
-        self.list_of_f_keys        = [f'f0{i}' for i in range(PTA.Npsr)]
-        self.list_of_fdot_keys     = [f'fdot{i}' for i in range(PTA.Npsr)]
-        self.list_of_distance_keys = [f'distance{i}' for i in range(PTA.Npsr)]
-        self.list_of_sigma_p_keys  = [f'sigma_p{i}' for i in range(PTA.Npsr)]
-
+    """
+    The Jacobian matrix of the state evolution function F = \partial f / \partial x 
+    This is a matrix of dimension (2,2)
+    """
+    def F_jacobian(self,x,g):
+        return np.array(([1.0,self.dt],[-g*np.cos(x[0])*self.dt,1]))
 
 
     """
-    State transition matrix.
-    This one is time-independent, only depends on dt
+    The measurement function z = h(x)
     """
-    def F_matrix(self,parameters):
-        return np.diag(np.exp(-self.γ*self.dt))
-
-
-    """
-    Control vector.
-    This one is time-independent, only depends on dt
-    """
-    def B_control_vector(self,parameters):
-        return np.zeros(self.N_states)
+    def h(self,x):
+        return np.sin(x[0])
 
 
     """
-    Process noise covariance matrix
-    This one is time-independent, only depends on dt
+    The Jacobian matrix of the measurement function H = \partial h / \partial x 
+    This is a matrix of dimension (2,1)
     """
-    def Q_matrix(self,parameters):
-        σp = parameters['σp']
-        diagonal = σp**2 * (1. - np.exp(-2.0*self.γ* self.dt)) / (2.0 * self.γ)
-        return np.diag(diagonal)
-
-
-    """
-    Measurement matrix
-    """
-    def H_matrix(self,parameters,t):
-        X = gw_measurement_effect(Ω=parameters['Ω'],
-                                  Φ0=parameters['Φ0'],
-                                  ψ=parameters['ψ'],
-                                  ι=parameters['ι'],
-                                  δ=parameters['δ'],
-                                  α=parameters['α'],
-                                  h=parameters['h'],
-                                  q=self.q,
-                                  d=parameters['d'],
-                                  t=t).flatten() 
-
-
-
-        return np.diag(1.0 - X)
-
-
-    """
-    A control vector added to the measurement matrix. Must be independent of the states!
-    """
-    def H_control_vector(self,parameters,t):
-
-        X = gw_measurement_effect(Ω=parameters['Ω'],
-                                  Φ0=parameters['Φ0'],
-                                  ψ=parameters['ψ'],
-                                  ι=parameters['ι'],
-                                  δ=parameters['δ'],
-                                  α=parameters['α'],
-                                  h=parameters['h'],
-                                  q=self.q,
-                                  d=parameters['d'],
-                                  t=t).flatten()
-
-
-        ephemeris = parameters['f'] + t*parameters['fdot']
-
-        return -X * ephemeris
-
-
-
-    def R_matrix(self):
-        return self.σm**2 * np.eye(self.N_states)
-    
-
-
-    """
-    From the Bilby dictionary, create a "nice" dictionary for use by the Kalman filter 
-    
-    The likelihood function accepts as an argument a `parameters` Bilby dictionary.
-
-    This is used in conjunction with nested sampling. 
-    
-    But we need to tell our model / Kalman filter how to read this parameters dictionary 
-    
-    """
-    def create_parameters_dictionary(self, bilby_parameters_dict):
-        
-        
-        #All the GW parameters can just be directly accessed as variables
-        Ω   = bilby_parameters_dict["omega_gw"].item()
-        Φ0  = bilby_parameters_dict["phi0_gw"].item()
-        ψ   = bilby_parameters_dict["psi_gw"].item()
-        ι   = bilby_parameters_dict["iota_gw"].item()
-        δ   = bilby_parameters_dict["delta_gw"].item()
-        α   = bilby_parameters_dict["alpha_gw"].item()
-        h   = bilby_parameters_dict["h"].item()
-
-        #Now read in the pulsar parameters as vectors
-        f       = dict_to_array(bilby_parameters_dict,self.list_of_f_keys)
-        fdot    = dict_to_array(bilby_parameters_dict,self.list_of_fdot_keys)
-        d       = dict_to_array(bilby_parameters_dict,self.list_of_distance_keys)
-        σp      = dict_to_array(bilby_parameters_dict,self.list_of_sigma_p_keys)
-
-
-        #Create a new dictionary
-        output_dictionary = { 'Ω': Ω,
-                              'Φ0':Φ0,
-                              'ψ': ψ,
-                              'ι':ι,
-                              'δ':δ,
-                              'α':α,
-                              'h':h,
-                              'f':f,
-                              'fdot':fdot,
-                              'd':d,
-                              'σp':σp}
-
-        return output_dictionary
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    def H_jacobian(self,x):
+        return np.ndarray((1,2),buffer=np.array([np.cos(x[0]),0])) #y,x #todo fix this to be general
 
