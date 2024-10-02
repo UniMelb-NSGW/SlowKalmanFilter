@@ -13,3 +13,6 @@ It is used as a "source of truth" to check the results of other more performant 
 It is purely a filter - there is no parameter estimation, Bayesian inference etc. However, with en eye on this use case it does use the the [Bilby](https://lscsoft.docs.ligo.org/bilby/) package to specify the model parameters which are passed to the filter. 
 
 We demonstrate the capabilities of the filter using a noisy pendulum model. See `notebooks/NoisyPendulum.py` for a worked example. However the filter itself (`src/kalman_filter.py`) is general and the repository as a whole should be easily extensible to other systems or projects
+
+Please feel free to [open an issue](https://github.com/Melbourne-AstroCode/SlowKalmanFilter/issues) or create a [pull request](https://github.com/Melbourne-AstroCode/SlowKalmanFilter/pulls) 
+
