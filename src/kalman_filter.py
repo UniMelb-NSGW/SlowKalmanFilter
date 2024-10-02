@@ -85,11 +85,6 @@ class ExtendedKalmanFilter:
 
 
 
-    #https://stackoverflow.com/questions/16266720/find-out-if-a-matrix-is-positive-definite-with-numpy
-    def is_pos_def(self,x):
-        return np.all(np.linalg.eigvals(x) > 0)
-
-
     """
     Update step
     """
@@ -140,13 +135,14 @@ class ExtendedKalmanFilter:
         #Define arrays to store results
         self.state_predictions       = np.zeros((self.n_steps,self.n_states))
         self.measurement_predictions = np.zeros((self.n_steps,self.n_measurement_states))
-
+        self.state_covariance        = np.zeros((self.n_steps,self.n_states,self.n_states))
 
 
         # #Do the first update step
         i = 0
         x,P,likelihood_value,y_predicted = self._update(x,P, self.observations[i,:])
         self.state_predictions[i,:] = x
+        self.state_covariance[i,:,:] = P
         self.measurement_predictions[i,:]  = y_predicted
         self.ll +=likelihood_value
 
@@ -163,6 +159,7 @@ class ExtendedKalmanFilter:
             #Update the running sum of the likelihood and save the state and measurement predictions
             self.ll +=likelihood_value
             self.state_predictions[i,:] = x
+            self.state_covariance[i,:,:] = P
             self.measurement_predictions[i,:]  = y_predicted
        
 
