@@ -30,7 +30,7 @@ def test_matrix_shapes():
     assert F.shape == (Npsr,Npsr)
     assert B.shape == (Npsr,)
     assert F.shape == Q.shape
-    assert H.shape == F.shape
+    assert H.shape == F.shape    
     assert Hcontrol.shape == B.shape
 
 

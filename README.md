@@ -12,7 +12,7 @@ It is used as a "source of truth" to check the results of other more performant 
 
 It is purely a filter - there is no Bayesian inference, nested sampling, etc. However, for compatibility with other projects it does use the `Bilby` package to set input parameters to the filter.
 
-The demonstration is is based around Kalman filtering of a state-space model of the [Van der Pol oscillator](https://en.wikipedia.org/wiki/Van_der_Pol_oscillator)
+The demonstration is is based around Kalman filtering of a state-space model of the noisy pendulum. See `notebooks/NoisyPendulum.py` for a demonstration.
 
 However the filter itself (`src/kalman_filter.py`) is general and the repository as a whole should be easily extensible to other systems or projects
 

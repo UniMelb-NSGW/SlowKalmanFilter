@@ -75,8 +75,7 @@ class ExtendedKalmanFilter:
 
         F_jacobian = self.model.F_jacobian(x,parameters['g'])
         Q          = self.model.Q_matrix(x,parameters['σp'])
-       
-
+    
         x_predict = f_function
         P_predict = F_jacobian@P@F_jacobian.T + Q
 
@@ -101,43 +100,21 @@ class ExtendedKalmanFilter:
 
         #Now do the standard Kalman steps
         y_predicted = self.model.h(x)                       # The predicted y
-        y           = observation - y_predicted             # The innovation/residual w.r.t actual data        
+        y           = observation - y_predicted             # The innovation/residual w.r.t actual data         
         S           = H_jacobian@P@H_jacobian.T + self.R    # Innovation covariance
-        
-        print("innovation:", y)
-        
         Sinv        = scipy.linalg.inv(S)                   # Innovation covariance inverse
-    
-    
-        K           = P@H_jacobian.T@Sinv                # Kalman gain
-        xnew        = x + K@y                            # update x
-       
+        K           = P@H_jacobian.T@Sinv                   # Kalman gain
+        xnew        = x + K@y                               # update x
+        Pnew        = P -K@S@K.T                            # Update P 
         
-
-        Pnew = P -K@S@K.T #equation 5.27 in Sarkka
-        
-
-
-
-        #print(self.is_pos_def(Pnew))
+        ##-------------------
+        # The Pnew update equation is equation 5.27 in Sarkka  
+        # Other equivalent options for computing Pnew are:
+            # P = (I-KH)P
+            # P = (I-KH)P(I-KH)' + KRK' (this one may have advantages for numerical stability)
+        ##-------------------
 
 
-        #Pnew        = P - K@H_jacobian@P                 # update P
-        # Pnew         = (np.eye(self.n_states) - K@H_jacobian)@P
-        
-        
-        # # P = (I-KH)P(I-KH)' + KRK'
-        # # This is more numerically stable
-        # # and works for non-optimal K vs the equation
-        # # P = (I-KH)P usually seen in the literature.
-
-        # I_KH = np.eye(self.n_states) - np.dot(K, H_jacobian)
-        # Pnew = np.dot(np.dot(I_KH, P), I_KH.T) + np.dot(np.dot(K, self.R), K.T)
-        
-        
-
-        
-        
         ll          = self._log_likelihood(y,S)          # and get the likelihood
         y_updated   = self.model.h(xnew)                 # and map xnew to measurement space
 
@@ -160,7 +137,6 @@ class ExtendedKalmanFilter:
         self.R          = self.model.R_matrix(parameters['σm'])
 
      
-        
         #Define arrays to store results
         self.state_predictions       = np.zeros((self.n_steps,self.n_states))
         self.measurement_predictions = np.zeros((self.n_steps,self.n_measurement_states))
@@ -168,25 +144,20 @@ class ExtendedKalmanFilter:
 
 
         # #Do the first update step
-        # i = 0
-        # x,P,likelihood_value,y_predicted = self._update(x,P, self.observations[i,:])
-        
-        
-           
-        # self.state_predictions[i,:] = x
-        # self.measurement_predictions[i,:]  = y_predicted
-        # self.ll +=likelihood_value
+        i = 0
+        x,P,likelihood_value,y_predicted = self._update(x,P, self.observations[i,:])
+        self.state_predictions[i,:] = x
+        self.measurement_predictions[i,:]  = y_predicted
+        self.ll +=likelihood_value
 
  
      
-#        for i in np.arange(1,self.n_steps):
-        for i in np.arange(self.n_steps):
+        for i in np.arange(1,self.n_steps):
 
-            print(i,x,self.observations[i,:])
-            
+            #Predict step
             x_predict, P_predict             = self._predict(x,P,parameters)                                        # The predict step
-            #print("x_predict:", x_predict[0]-0.9997915852901519,x_predict[1]--0.11682887935177941)
-            #sys.exit()
+            
+            #Update step
             x,P,likelihood_value,y_predicted = self._update(x_predict,P_predict, self.observations[i,:]) # The update step
             
             #Update the running sum of the likelihood and save the state and measurement predictions
