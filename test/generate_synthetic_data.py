@@ -1,7 +1,4 @@
 import numpy as np 
-import matplotlib.pyplot as plt 
-import scienceplots
-plt.style.use('science')
 
 class NoisyPendulum:
     """ Simulates the signal from a noisy pendulum with process noise. 
