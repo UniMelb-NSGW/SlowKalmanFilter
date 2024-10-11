@@ -14,6 +14,7 @@ It is purely a filter - there is no parameter estimation, Bayesian inference etc
 
 We demonstrate the capabilities of the filter using a noisy pendulum model. See `notebooks/NoisyPendulum.py` for a worked example. However the filter itself (`src/kalman_filter.py`) is general and the repository as a whole should be easily extensible to other systems or projects.
 
+example edit checking all owkrs ok
 
 ---
 
