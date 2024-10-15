@@ -1,8 +1,6 @@
 # Slow Kalman Filter
 
 
-<!-- [![codecov](https://codecov.io/gh/tomkimpson/SlowKalmanFilter/graph/badge.svg?token=MXT5Y10BX7)](https://codecov.io/gh/tomkimpson/SlowKalmanFilter) -->
-
 [![codecov](https://codecov.io/gh/UniMelb-NSGW/SlowKalmanFilter/graph/badge.svg?token=MXT5Y10BX7)](https://codecov.io/gh/UniMelb-NSGW/SlowKalmanFilter)
 
 [![Build Status](https://github.com/tomkimpson/UniMelb-NSGW/actions/workflows/run_test.yml/badge.svg?branch=main)](https://github.com/tomkimpson/UniMelb-NSGW/actions/workflows/run_test.yml?query=branch%3Amain)
