@@ -1,6 +1,6 @@
 import scipy.linalg as la
 import numpy as np
-from numba import jit
+#from numba import jit
 from numpy.linalg import solve, slogdet
 
 
@@ -10,7 +10,7 @@ from numpy.linalg import solve, slogdet
 
 ################################
 
-@jit(nopython=True)
+#@jit(nopython=True)
 def f(t, x, g):
     x0 = x[0]
     x1 = x[1]
@@ -18,7 +18,7 @@ def f(t, x, g):
     rhs = np.asarray([x1, -g*np.sin(x0)])
     return rhs
 
-@jit(nopython=True)
+#@jit(nopython=True)
 def rk4_step(func, x, t, dt, *args):
     k1 = dt * func(t, x, *args)
     k2 = dt * func(t + dt / 2, x + k1 / 2, *args)
@@ -27,7 +27,7 @@ def rk4_step(func, x, t, dt, *args):
 
     return x + (k1 + 2 * k2 + 2 * k3 + k4) / 6
 
-@jit(nopython=True)
+#@jit(nopython=True)
 def propagate_sigma_points(SigmaPoints, params, tcur, dt):
     g = params 
 
@@ -39,7 +39,7 @@ def propagate_sigma_points(SigmaPoints, params, tcur, dt):
 
 ################################
 
-@jit(nopython=True)
+#@jit(nopython=True)
 def Predict(Wc, Wm, PropagatedSigmaPoints, nstates, Q):
     Xp = np.zeros((nstates, 1))
     for i in range(len(Wm)):
@@ -58,7 +58,7 @@ def Predict(Wc, Wm, PropagatedSigmaPoints, nstates, Q):
 
     return Xp, Pp
 
-@jit(nopython=True)
+#@jit(nopython=True)
 def Update(Xp, Pp, Wc, PropagatedSigmaPoints, Observation, WeightedMeas, MeasurementDiff, R, nstates, nmeas):
     Inn = Observation - WeightedMeas
 

@@ -7,14 +7,14 @@ import jax.numpy as jnp
 class KalmanPendulum():
     """ 
     The Kalman filter equations for the noisy Pendulum oscillator with process noise.
-    Please see xx.ipynb for a detailed explanation
+    Please see NoisyPendulum.ipynb for a detailed explanation
     """
 
 
     def __init__(self,dt):
         self.dt = dt
         self.n_states = 2 # the system has 2 hidden states (x,y)
-        self.n_y = 1 # the system has one observation state z
+        self.n_y = 1      # the system has one observation state z
 
     """The discrete measurement noise covariance matrix"""
     def R_matrix(self,σm):
@@ -25,13 +25,18 @@ class KalmanPendulum():
     """The discrete process noise covariance matrix"""
     def Q_matrix(self,x,σp):
       
-        Q11 = σp*self.dt**3 / 3
-        Q12 = σp*self.dt**2 / 2
-        Q21 = σp*self.dt**2 / 2
-        Q22 = σp*self.dt
+        Q11 = σp**2*self.dt**3 / 3
+        Q12 = σp**2*self.dt**2 / 2
+        Q21 = σp**2*self.dt**2 / 2
+        Q22 = σp**2*self.dt
         Q = jnp.array([[Q11,Q12],[Q21,Q22]])
 
         return Q
+
+
+
+    def 
+
 
 
     """The state evolution function dot{x} = f(x)"""
