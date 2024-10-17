@@ -3,7 +3,7 @@ from jax import config
 config.update("jax_enable_x64", True)
 import jax.numpy as jnp
 
-
+import numpy as np 
 class KalmanPendulum():
     """ 
     The Kalman filter equations for the noisy Pendulum oscillator with process noise.
@@ -35,7 +35,11 @@ class KalmanPendulum():
 
 
 
-    def 
+    def derivative_function(self,x, g):
+        x0 = x[0]
+        x1 = x[1]
+        rhs = np.asarray([x1, -g*np.sin(x0)]) #jnp seems to slow things down a lot here 
+        return rhs
 
 
 

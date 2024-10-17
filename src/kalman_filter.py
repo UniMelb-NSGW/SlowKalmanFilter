@@ -202,6 +202,7 @@ class UnscentedKalmanFilter:
         assert self.observations.ndim == 2, f'This filter requires that input observations is a 2D array. The observations here have {self.observations.ndim} dimensions '
       
      
+        self.dt = self.model.dt
         self.n_measurement_states  = self.observations.shape[-1] #number of measurement states
         self.n_steps               = self.observations.shape[0]  #number of observations/timesteps
         self.n_states              = self.model.n_states
@@ -234,6 +235,8 @@ class UnscentedKalmanFilter:
     """
     def CalculateSigmaPoints(self, x, P):
 
+
+  
         epsilon = 1e-24 #todo, does this value matter?
         Pos_definite_Check= 0.5*(P + P.T) + epsilon*np.eye(len(x))
         
@@ -245,9 +248,90 @@ class UnscentedKalmanFilter:
         for i in range(self.n_states):
             sigma_points[i+1]               = x + self.γ*U[:, i]
             sigma_points[self.n_states+i+1] = x - self.γ*U[:, i]
-
-    
         return sigma_points
+
+
+
+
+    def rk4_step(self,x):
+        k1 = self.dt * self.model.derivative_function(x, self.g)
+        k2 = self.dt * self.model.derivative_function(x + k1 / 2, self.g)
+        k3 = self.dt * self.model.derivative_function(x + k2 / 2, self.g)
+        k4 = self.dt * self.model.derivative_function(x + k3, self.g)
+
+        return x + (k1 + 2 * k2 + 2 * k3 + k4) / 6
+
+
+    def propagate_sigma_points(self,sigma_points):
+
+        propagated_sigma_points = np.empty_like(sigma_points)
+        for i, x in enumerate(sigma_points):
+            propagated_sigma_points[i] = self.rk4_step(x)
+        return propagated_sigma_points
+
+
+    def predict(self,propagated_sigma_points):
+
+        xp = np.zeros((self.n_states, 1))
+        for i in range(len(self.Wm)):
+            xp += self.Wm[i] * propagated_sigma_points[i].reshape(self.n_states, 1)
+
+            
+        SigmaPointDiff = np.zeros((len(propagated_sigma_points), self.n_states))
+        for i, point in enumerate(propagated_sigma_points):
+            SigmaPointDiff[i] = point - xp.ravel()
+
+        Pp = np.zeros((self.n_states, self.n_states))
+        for i, diff in enumerate(SigmaPointDiff):
+            Pp += self.Wc[i] * np.outer(diff, diff)
+            
+        Pp += self.Q
+
+        return xp, Pp
+
+
+
+
+    def update(self,xp, Pp, propagated_sigma_points, observation):
+        
+        #todo, update this notatoin
+        SP_Meas = np.column_stack((np.sin(propagated_sigma_points[:, 0])))  # this should come in from th emodel
+        WeightedMeas = np.einsum('i,ij->j', self.Wm, SP_Meas.T)
+        MeasurementDiff = SP_Meas - WeightedMeas
+
+        
+        Inn = observation - WeightedMeas
+
+        SigmaPointDiff = propagated_sigma_points - xp.T
+
+        PredMeasurementCov = np.zeros((self.n_measurement_states, self.n_measurement_states))
+        for i in range(len(self.Wc)):
+            PredMeasurementCov += self.Wc[i] * np.outer((MeasurementDiff.T)[i],( MeasurementDiff.T)[i])
+        PredMeasurementCov += self.R
+
+        CrossCovariance = np.zeros((self.n_states, self.n_measurement_states))
+        for i in range(len(self.Wc)):
+            CrossCovariance += self.Wc[i] * np.outer(SigmaPointDiff[i], (MeasurementDiff.T)[i])
+
+        kalman_gain = np.linalg.solve(PredMeasurementCov.T, CrossCovariance.T).T
+
+        x = xp + kalman_gain*Inn
+
+        P = Pp - np.dot(kalman_gain, np.dot(PredMeasurementCov, kalman_gain.T))
+
+        sign, log_det = np.linalg.slogdet(PredMeasurementCov)
+        ll = -0.5 * (log_det + np.dot(Inn.T, np.linalg.solve(PredMeasurementCov, Inn))
+                    + np.log(2 * np.pi))
+        
+        return x.flatten(), P, ll, np.sin(x[0]) #need the measurement model here
+
+
+
+
+
+
+
+
 
 
     
@@ -263,6 +347,9 @@ class UnscentedKalmanFilter:
 
         #Define any matrices which are constant in time
         self.R          = self.model.R_matrix(parameters['σm'])
+        self.Q          = self.model.Q_matrix(x,parameters['σp']) # todo - not a funciton of x. Is it ever? 
+
+        self.g = parameters['g'] # this is not the right place to unpack this parameter. Leaving here for now while strucutre comes in 
 
      
         #Define arrays to store results
@@ -276,30 +363,24 @@ class UnscentedKalmanFilter:
 
 
         for i in range(self.n_steps):
+            
+            sigma_points            = self.CalculateSigmaPoints(x,P)
+            propagated_sigma_points = self.propagate_sigma_points(sigma_points)
 
 
-            self.CalculateSigmaPoints(x,P)
+            x_predict, P_predict    = self.predict(propagated_sigma_points)
+            propagated_sigma_points = self.CalculateSigmaPoints(x_predict.squeeze(),P_predict) #todo, handle the squeeze. Also, check this is the same as what Joe does
 
+            #WeightedMeas,MeasurementDiff = self.sigma_point_measurement(propagated_sigma_points)
+            x,P,likelihood_value,y_predicted = self.update(x_predict, P_predict, propagated_sigma_points, self.observations[i,:])
 
-        #i = 0
-        # x,P,likelihood_value,y_predicted = self._update(x,P, self.observations[i,:])
-        # self.state_predictions[i,:] = x
-        # self.state_covariance[i,:,:] = P
-        # self.measurement_predictions[i,:]  = y_predicted
-        # self.ll +=likelihood_value
+      
+            #IO
+            self.state_predictions[i,:] = x
+            self.state_covariance[i,:,:] = P
+            self.measurement_predictions[i,:]  = y_predicted
+            self.ll +=likelihood_value
 
  
      
-        # for i in np.arange(1,self.n_steps):
-
-        #     #Predict step
-        #     x_predict, P_predict             = self._predict(x,P,parameters)                                        # The predict step
-            
-        #     #Update step
-        #     x,P,likelihood_value,y_predicted = self._update(x_predict,P_predict, self.observations[i,:]) # The update step
-            
-        #     #Update the running sum of the likelihood and save the state and measurement predictions
-        #     self.ll +=likelihood_value
-        #     self.state_predictions[i,:] = x
-        #     self.state_covariance[i,:,:] = P
-        #     self.measurement_predictions[i,:]  = y_predicted
+ 
