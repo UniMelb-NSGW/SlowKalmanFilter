@@ -7,7 +7,7 @@ import jax.numpy as jnp
 class KalmanPendulum():
     """ 
     The Kalman filter equations for the noisy Pendulum oscillator with process noise.
-    Please see xx.ipynb for a detailed explanation
+    Please see NoisyPendulum.ipynb for a detailed explanation
     """
 
 
