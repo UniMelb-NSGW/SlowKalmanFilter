@@ -100,9 +100,10 @@ class UKFKalmanPendulum():
 
         return Q
 
-    def derivative_function(self,x, g):
+    def derivative_function(self,x, parameters):
         x0 = x[0]
         x1 = x[1]
+        g = parameters['g']
         rhs = np.asarray([x1, -g*np.sin(x0)]) #jnp seems to slow things down a lot here 
         return rhs
 
@@ -150,14 +151,15 @@ class UKFKalmanPendulumEstimateG():
         Q21 = σp**2*self.dt**2 / 2
         Q22 = σp**2*self.dt
         Q33 = 1e-4
-        Q = np.array([[Q11,Q12],[Q21,Q22]])
-
+        Q = np.array([[Q11,Q12,0],[Q21,Q22,0],[0,0,Q33]]) 
+       
         return Q
 
-    def derivative_function(self,x, g):
+    def derivative_function(self,x, parameters):
         x0 = x[0]
         x1 = x[1]
-        rhs = np.asarray([x1, -g*np.sin(x0)]) #jnp seems to slow things down a lot here 
+        g  = x[2]
+        rhs = np.asarray([x1, -g*np.sin(x0),0]) 
         return rhs
 
     """The measurement function z = h(x)"""
