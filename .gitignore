@@ -1,2 +1,6 @@
 src/__pycache__/*.pyc
 test/__pycache__/*pyc
+**/*.pyc
+**/*.png
+UKFTest/NoisyPendulum/Data.png
+UKFTest/NoisyPendulum/Data.png
