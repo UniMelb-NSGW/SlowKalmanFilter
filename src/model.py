@@ -34,15 +34,6 @@ class KalmanPendulum():
         return Q
 
 
-
-    def derivative_function(self,x, g):
-        x0 = x[0]
-        x1 = x[1]
-        rhs = np.asarray([x1, -g*np.sin(x0)]) #jnp seems to slow things down a lot here 
-        return rhs
-
-
-
     """The state evolution function dot{x} = f(x)"""
     def f(self,x,g):
         dx = jnp.zeros_like(x)
