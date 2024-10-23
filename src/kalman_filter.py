@@ -273,10 +273,10 @@ class UnscentedKalmanFilter:
     A fourth order Runge-Kutta integration step
     """
     def rk4_step(self,x):
-        k1 = self.dt * self.model.derivative_function(x, self.g)
-        k2 = self.dt * self.model.derivative_function(x + k1 / 2, self.g)
-        k3 = self.dt * self.model.derivative_function(x + k2 / 2, self.g)
-        k4 = self.dt * self.model.derivative_function(x + k3, self.g)
+        k1 = self.dt * self.model.derivative_function(x, self.parameters)
+        k2 = self.dt * self.model.derivative_function(x + k1 / 2, self.parameters)
+        k3 = self.dt * self.model.derivative_function(x + k2 / 2, self.parameters)
+        k4 = self.dt * self.model.derivative_function(x + k3, self.parameters)
 
         return x + (k1 + 2 * k2 + 2 * k3 + k4) / 6
 
@@ -387,7 +387,8 @@ class UnscentedKalmanFilter:
         self.R          = self.model.R_matrix(parameters['σm'])
         self.Q          = self.model.Q_matrix(x,parameters['σp']) # todo - not a funciton of x. Is it ever? 
 
-        self.g = parameters['g'] # this is not the right place to unpack this parameter. Leaving here for now while strucutre comes in 
+        #Make the parameters a property of the class
+        self.parameters = parameters 
 
      
         #Define arrays to store results

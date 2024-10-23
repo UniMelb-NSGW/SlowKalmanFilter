@@ -100,10 +100,66 @@ class UKFKalmanPendulum():
 
         return Q
 
-    def derivative_function(self,x, g):
+    def derivative_function(self,x, parameters):
         x0 = x[0]
         x1 = x[1]
+        g = parameters['g']
         rhs = np.asarray([x1, -g*np.sin(x0)]) #jnp seems to slow things down a lot here 
+        return rhs
+
+    """The measurement function z = h(x)"""
+    def sigma_point_measurement_function(self,x):
+        return np.sin(x[:,0]) # x has dimension (number_of_sigma_points, number_of_states). We want all the sigma points, but just the 0th state
+
+    """The measurement function z = h(x)"""
+    def measurement_function(self,x):
+        return np.sin(x[0])  # x has dimension (number_of_states). We want all the sigma points, but just the 0th state
+
+
+    #currently we have two measurement functions. One which operates on the sigma points and one which operates on the states
+    #we can probably clean this up to be more concise. todo
+    #Note that measurment_function is not actually required for the filter to run, it is just useful for plotting.
+
+
+
+
+
+
+
+class UKFKalmanPendulumEstimateG():
+    """ 
+    As UKFKalmanPendulum but now with the state extended to include the gravitational field strength parameter g
+    """
+
+
+    def __init__(self,dt):
+        self.dt = dt
+        self.n_states = 3 # the system has 2 hidden states (x,y)
+        self.n_y = 1      # the system has one observation state z
+
+    """The discrete measurement noise covariance matrix"""
+    def R_matrix(self,σm):
+        scalar = σm**2
+        return scalar * jnp.ones((self.n_y,self.n_y)) #todo fix ny nomenclature
+
+
+    """The discrete process noise covariance matrix"""
+    def Q_matrix(self,x,σp):
+      
+        Q11 = σp**2*self.dt**3 / 3
+        Q12 = σp**2*self.dt**2 / 2
+        Q21 = σp**2*self.dt**2 / 2
+        Q22 = σp**2*self.dt
+        Q33 = 1e-4
+        Q = np.array([[Q11,Q12,0],[Q21,Q22,0],[0,0,Q33]]) 
+       
+        return Q
+
+    def derivative_function(self,x, parameters):
+        x0 = x[0]
+        x1 = x[1]
+        g  = x[2]
+        rhs = np.asarray([x1, -g*np.sin(x0),0]) 
         return rhs
 
     """The measurement function z = h(x)"""
